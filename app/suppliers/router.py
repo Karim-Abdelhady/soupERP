@@ -1,0 +1,26 @@
+from sqlalchemy.orm import Session
+from fastapi import APIRouter, Depends
+from app.suppliers.schemas import UserSupplierResponse, SupplierUpdate
+from typing import List
+from database.database import get_db
+from app.suppliers import service
+from app.users.schemas import UserResponse
+
+
+router = APIRouter()
+
+@router.get("/users/suppliers",response_model=List[UserSupplierResponse], tags = ["Suppliers"])
+def get_suppliers(db: Session = Depends(get_db)):
+    return service.get_suppliers(db)
+
+@router.get("/users/suppliers/{supplier_id}", response_model=UserSupplierResponse, tags = ["Suppliers"])
+def get_supplier_by_supplier_id(supplier_id: int, db: Session = Depends(get_db)):
+    return service.get_supplier_by_supplier_id(db, supplier_id)
+
+@router.post("/users/suppliers/{user_id}", response_model=UserResponse, tags = ["Suppliers"])
+def convert_user_to_supplier(user_id: int, db: Session = Depends(get_db)):
+    return service.convert_user_to_supplier(db, user_id)
+
+@router.patch("/users/suppliers/{user_id}", response_model=UserSupplierResponse, tags = ["Suppliers"])
+def update_supplier(user_id: int, updateSupplier: SupplierUpdate, db: Session = Depends(get_db)):
+    return service.update_supplier(db, user_id, updateSupplier)
