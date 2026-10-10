@@ -25,12 +25,19 @@ Build Good APIs: Create clean endpoints that could easily connect to a frontend 
 Here are the main parts of the system:
 
 Foundation: System, Authorization, Authentication, Organization, Configuration, Audit.
+
 Master Data: Products, Customers, Suppliers, Warehouses, Units, Taxes.
+
 Inventory: Stock ledger, Stock Balance, Stock Transfers, Adjustments, Reservations, Valuations.
+
 Purchasing: Purchase Receipt, Purchase Order, Goods Receipt, Purchase Invoice, Purchase Return.
+
 Sales: Quotation, Sales Order, Sales Delivery, Sales Invoice, Sales Return.
+
 Accounting: Chart of accounts, Journal Entries, GL, AR, AP, Payments, Financial Reports.
+
 HR: Employees, Attendance, Leave, Payroll.
+
 Supporting Systems: Notifications, Background Jobs, Files, Workflow Engine, Reports, Dashboards.
 
 
