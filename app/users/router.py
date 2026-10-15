@@ -10,34 +10,41 @@ from fastapi import status
 from fastapi import BackgroundTasks
 from .schemas import SetupPasswordRequest
 from fastapi.responses import HTMLResponse
+from app.users.models import User
+from app.auth.permissions import require_permission, PermissionCatalog
+from app.core.security import get_current_user
 
 router = APIRouter()
 
 @router.get("/users", response_model=List[UserResponse], tags = ["Users"])
-def get_users(db: Session = Depends(get_db)):
+def get_users(db: Session = Depends(get_db), current_user: User = Depends(require_permission(PermissionCatalog.USER_READ))):
     return service.get_users(db)
 
+@router.get("/users/me", response_model=UserResponse, tags = ["Users"])
+def get_my_profile(current_user: User = Depends(get_current_user)):
+    return current_user 
+
 @router.get("/users/email/{email}", response_model=UserResponse, tags = ["Users"])
-def get_user_by_email(email: EmailStr, db: Session = Depends(get_db)):
+def get_user_by_email(email: EmailStr, db: Session = Depends(get_db), current_user: User = Depends(require_permission(PermissionCatalog.USER_READ))):
     return service.get_user_by_user_email(db, email)
 
 @router.get("/users/{user_id}", response_model=UserResponse, tags = ["Users"])
-def get_user_by_user_id(user_id:int, db:Session = Depends(get_db)):
+def get_user_by_user_id(user_id:int, db:Session = Depends(get_db), current_user: User = Depends(require_permission(PermissionCatalog.USER_READ))):
     return service.get_user_by_user_id(db, user_id)
 
 @router.post("/users", response_model=UserResponse, tags = ["Users"])
-def invite_user(newUser: UserCreate,background_task: BackgroundTasks ,db: Session = Depends(get_db)):
+def invite_user(newUser: UserCreate,background_task: BackgroundTasks ,db: Session = Depends(get_db), current_user: User = Depends(require_permission(PermissionCatalog.USER_CREATE))):
     return service.invite_user(db, newUser, background_task)
 
 @router.patch("/users/{user_id}", response_model=UserResponse, tags = ["Users"])
-def update_user(user_id: int, updateUser: UserUpdate, db:Session = Depends(get_db)):
+def update_user(user_id: int, updateUser: UserUpdate, db:Session = Depends(get_db), current_user: User = Depends(require_permission(PermissionCatalog.USER_UPDATE))):
     return service.update_user(db, user_id, updateUser)
 
 @router.post("/login", response_model=TokenResponse, status_code=status.HTTP_200_OK, tags = ["Users"])
 def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
     return service.login_user(db, form_data)
 
-@router.post("/users/setup-password", tags=["Users"])
+@router.post("/users/setup-password", tags=["Users"])   
 def setup_password(data: SetupPasswordRequest, db: Session = Depends(get_db)):
     return service.setup_user_password(db, data)
 

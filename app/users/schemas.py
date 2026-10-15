@@ -1,11 +1,12 @@
 from pydantic import BaseModel, Field, EmailStr
 from datetime import datetime
 from .models import UserType
+from typing import List
+from app.auth.schemas import UserRoleResponse
 
 class UserCreate(BaseModel):
     email: EmailStr
     username: str
-    hashed_password: str = Field(min_length=8)
     is_active: bool
     user_type: UserType
     first_name: str
@@ -59,6 +60,7 @@ class UserResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
     created_by: str
+    roles: List[UserRoleResponse]
 
     class Config:
         from_attributes = True
