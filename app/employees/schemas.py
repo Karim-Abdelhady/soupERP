@@ -1,7 +1,7 @@
 from pydantic import BaseModel
 from app.users.schemas import UserResponse
 from datetime import date
-from app.employees.models import EmployeeStatus, EmployeeSite, EmployeeClassification, PayFrequently, PayRateType
+from app.employees.enums import EmployeeStatus, EmployeeClassification, EmployeeSite, PayFrequently, PayRateType
 
 class EmployeeUpdate(BaseModel):
     hire_date: date | None = None

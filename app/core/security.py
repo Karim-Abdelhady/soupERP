@@ -7,8 +7,9 @@ from fastapi.security import OAuth2PasswordBearer
 from fastapi_mail import ConnectionConfig, FastMail, MessageSchema, MessageType
 from sqlalchemy.orm import Session
 from app.core.config import settings
-from app.users.models import User
 from database.database import get_db
+from app.users.models import User
+
 
 
 password_hash = PasswordHash.recommended()
@@ -69,10 +70,15 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
         user_id: str = payload.get("sub")
         if user_id is None:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail ="Could not validate credentials")
-    except InvalidTokenError:
+    except (InvalidTokenError, ValueError):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail = "Could not validate credentials")
 
-    user = db.query(User).filter(User.id == int(user_id)).first()
+    try:
+        parsed_user_id = int(user_id)
+    except (InvalidTokenError, ValueError):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail ="Could not validate credentials")
+    
+    user = db.query(User).filter(User.id == parsed_user_id).first()
     if user is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail = "Could not validate credentials")
     if not user.is_active:
