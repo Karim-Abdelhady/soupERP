@@ -41,4 +41,4 @@ class User(Base):
     supplier_profile = relationship("Supplier",back_populates="user", uselist=False)
 
     roles: Mapped[list["Role"]] = relationship(secondary=user_roles, back_populates="users")
-
+    session: Mapped["UserSession"] = relationship("UserSession", back_populates="user")

@@ -9,6 +9,10 @@ from sqlalchemy.orm import Session
 from app.core.config import settings
 from database.database import get_db
 from app.users.models import User
+from app.users import repository as userRepository
+from app.sessions.models import UserSession
+from app.sessions.enums import SessionStatus
+from app.sessions import repository as sessionRepository
 
 
 
@@ -69,20 +73,28 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
         )
         user_id: str = payload.get("sub")
         if user_id is None:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail ="Could not validate credentials")
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Could not validate credentials")
     except (InvalidTokenError, ValueError):
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail = "Could not validate credentials")
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Could not validate credentials")
 
     try:
         parsed_user_id = int(user_id)
     except (InvalidTokenError, ValueError):
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail ="Could not validate credentials")
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Could not validate credentials")
+
+    user = userRepository.get_user_by_user_id(db, parsed_user_id)
+    if user is None or not user.is_active:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="User is inactive")
+
+    session = sessionRepository.get_user_sessions(db, parsed_user_id)
+    if session is None or session.session_status != SessionStatus.ACTIVE:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Session not found or inactive")
+
+    if session.expires_at < datetime.now(timezone.utc):
+        sessionRepository.update_revoke(db, session)
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Session expired")
     
-    user = db.query(User).filter(User.id == parsed_user_id).first()
-    if user is None:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail = "Could not validate credentials")
-    if not user.is_active:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail = "User is Inactive")
+    sessionRepository.update_activity(db, session)
     return user
 
 async def send_invitation_email(email: str, token: str):
