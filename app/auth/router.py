@@ -37,5 +37,5 @@ def delete_role_permission(role_id: int, permission_catalog: PermissionCatalog, 
     return service.delete_role_permission(db, role_id, permission_catalog)
 
 @router.post("/user/{user_id}/roles/{role_id}", response_model=UserResponse, tags = ["Roles"])
-def add_role_to_user(user_id: int, role_id: int, db: Session = Depends(get_db), current_user: User = Depends(require_permission(PermissionCatalog.ROLE_ADD_TO_USER))):
+def add_role_to_user(user_id: int, role_id: int, db: Session = Depends(get_db)):
     return service.add_role_to_user(db, user_id, role_id)

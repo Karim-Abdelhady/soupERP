@@ -86,22 +86,4 @@ def setup_user_password(db: Session, payload: SetupPasswordRequest):
     return {"message": "Password successfully configurated, you can log in now."}
 
 
-def login_user(db: Session, form_data: OAuth2PasswordRequestForm):
-    hostname = socket.gethostname()
-    local_ip = socket.gethostbyname(hostname)
-    normalized_username = form_data.username.lower().strip()
-    user = repository.get_user_by_user_email(db, normalized_username)
-
-    if not user or not password_hash.verify(form_data.password,user.hashed_password):
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail = "Invalid Email or Password")
-
-    if not user.is_active:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail = "Account is pending activation, check your email.")
-
-    token = create_token({"sub": str(user.id)})
-    user.last_login_at = datetime.now(timezone.utc)
-    user.last_ip = local_ip
-    db.commit()
-    return TokenResponse(access_token=token, token_type="bearer")
-
 
