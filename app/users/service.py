@@ -1,5 +1,5 @@
 from app.users import repository
-from .schemas import UserCreate, TokenResponse, UserUpdate
+from .schemas import UserCreate, UserUpdate
 from sqlalchemy.orm import Session
 from fastapi import HTTPException, status
 from pydantic import EmailStr

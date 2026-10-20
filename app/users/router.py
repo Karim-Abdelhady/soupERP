@@ -2,7 +2,7 @@ from app.users import service
 from database.database import get_db
 from fastapi import APIRouter, Depends
 from typing import List
-from .schemas import UserResponse, UserCreate, UserUpdate, TokenResponse
+from .schemas import UserResponse, UserCreate, UserUpdate
 from sqlalchemy.orm import Session
 from pydantic import EmailStr
 from fastapi.security import OAuth2PasswordRequestForm
