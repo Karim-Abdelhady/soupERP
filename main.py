@@ -7,6 +7,7 @@ from app.employees.router import router as EmployeesRouter
 from app.auth.router import router as AuthorizationRouter
 from app.sessions.router import router as SessionsRouter
 from app.system_settings.router import router as SystemSettingsRouter
+from app.currencies.router import router as CurrencyRouter
 
 Base.metadata.create_all(bind=engine)
 app=FastAPI()
@@ -18,3 +19,4 @@ app.include_router(usersRouter)
 app.include_router(AuthorizationRouter)
 app.include_router(SessionsRouter)
 app.include_router(SystemSettingsRouter)
+app.include_router(CurrencyRouter)
