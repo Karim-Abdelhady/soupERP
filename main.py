@@ -8,6 +8,7 @@ from app.auth.router import router as AuthorizationRouter
 from app.sessions.router import router as SessionsRouter
 from app.system_settings.router import router as SystemSettingsRouter
 from app.currencies.router import router as CurrencyRouter
+from app.uom.router import router as UomRouter
 
 Base.metadata.create_all(bind=engine)
 app=FastAPI()
@@ -20,3 +21,4 @@ app.include_router(AuthorizationRouter)
 app.include_router(SessionsRouter)
 app.include_router(SystemSettingsRouter)
 app.include_router(CurrencyRouter)
+app.include_router(UomRouter)
