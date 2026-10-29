@@ -18,10 +18,6 @@ class UserCreate(BaseModel):
     language: str
     time_zone: str
     currency: str
-    last_ip: str
-    created_at: datetime
-    updated_at: datetime
-    created_by: str
 
 class UserUpdate(BaseModel):
     email: EmailStr | None = None
@@ -38,7 +34,6 @@ class UserUpdate(BaseModel):
     time_zone: str | None = None
     currency: str | None = None
 
-    created_by: str
 
 class UserResponse(BaseModel):
     id: int

@@ -25,11 +25,7 @@ def create_role(db: Session, newRole: RoleCreate):
     
     role_data = newRole.model_dump()
     
-    role_obj = Role(
-        **role_data,
-        permission_count=0,
-        assigned_user_count=0
-    )
+    role_obj = Role(**role_data)
     db_user = repository.create_role(db, role_obj)
     return db_user
 
