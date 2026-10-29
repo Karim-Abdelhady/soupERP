@@ -12,7 +12,7 @@ def require_permission(requiredPermission: PermissionCatalog):
             for perm in role.permissions
         }
 
-        if not user_permissions:
+        if requiredPermission.value not in user_permissions:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail = "Access Denied.")
 
         return current_user

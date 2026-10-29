@@ -7,8 +7,7 @@ from datetime import datetime, timezone
 from sqlalchemy import select
 
 def create_system_setting(db: Session, newSetting: SystemSettingCreate):
-    setting = SystemSettings.key
-    existing_setting = repository.get_setting_key(db, setting)
+    existing_setting = repository.get_setting_key(db, newSetting.key)
     if existing_setting is not None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail = "Setting key already exists")
 

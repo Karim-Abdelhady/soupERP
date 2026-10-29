@@ -12,6 +12,10 @@ def get_role_by_role_id(db: Session, role_id: int):
     statement = select(Role).where(Role.id == role_id)
     return db.scalar(statement)
 
+def get_role_by_role_name(db: Session, role_name: str):
+    statement = select(Role).where(Role.name == role_name)
+    return db.scalar(statement)
+
 def create_role(db: Session, role: Role):
     db.add(role)
     db.commit()
@@ -41,7 +45,7 @@ def add_role_to_user(db: Session, user: User, role: Role):
     if role in role.users:
         role.users.append(user)
         db.commit()
-        db.refresh()
+        db.refresh(role)
     return user
 
 
