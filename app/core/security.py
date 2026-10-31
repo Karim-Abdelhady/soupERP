@@ -8,11 +8,10 @@ from fastapi_mail import ConnectionConfig, FastMail, MessageSchema, MessageType
 from sqlalchemy.orm import Session
 from app.core.config import settings
 from database.database import get_db
-from app.users.models import User
-from app.users import repository as userRepository
-from app.sessions.models import UserSession
-from app.sessions.enums import SessionStatus
-from app.sessions import repository as sessionRepository
+from app.systemadministration.users.models import User
+from app.systemadministration.users import repository as userRepository
+from app.systemadministration.sessions.enums import SessionStatus
+from app.systemadministration.sessions import repository as sessionRepository
 
 
 
