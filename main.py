@@ -10,6 +10,7 @@ from app.systemadministration.system_settings.router import router as SystemSett
 from app.systemadministration.currencies.router import router as CurrencyRouter
 from app.systemadministration.uom.router import router as UomRouter
 from app.inventory.items.router import router as ItemRouter
+from app.inventory.warehouses.router import router as WarehouseRouter
 
 Base.metadata.create_all(bind=engine)
 app=FastAPI()
@@ -24,3 +25,4 @@ app.include_router(SystemSettingsRouter)
 app.include_router(CurrencyRouter)
 app.include_router(UomRouter)
 app.include_router(ItemRouter)
+app.include_router(WarehouseRouter)
