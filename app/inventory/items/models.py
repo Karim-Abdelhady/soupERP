@@ -41,3 +41,6 @@ class Item(Base):
 
     group: Mapped["ItemGroup"] = relationship(back_populates="items")
     uom: Mapped["UnitOfMeasure"] = relationship(back_populates="items")
+    itemstockbalance: Mapped[List["StockBalance"]] = relationship("StockBalance", back_populates="item")
+    itemstockledger: Mapped[List["StockLedger"]] = relationship("StockLedger", back_populates="item")
+    

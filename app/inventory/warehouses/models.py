@@ -33,3 +33,5 @@ class Warehouse(Base):
     warehouse_type: Mapped["WarehouseType"] = relationship(back_populates="warehouses")
     parent: Mapped[Optional["Warehouse"]] = relationship("Warehouse",remote_side=[id], back_populates="children")
     children: Mapped[List["Warehouse"]] = relationship("Warehouse", back_populates="parent")
+    warehousestockbalance: Mapped[List["StockBalance"]] = relationship("StockBalance", back_populates="warehouse")
+    warehousestockledger: Mapped[List["StockLedger"]] = relationship("StockLedger", back_populates="warehouse")

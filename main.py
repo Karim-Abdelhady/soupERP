@@ -11,6 +11,8 @@ from app.systemadministration.currencies.router import router as CurrencyRouter
 from app.systemadministration.uom.router import router as UomRouter
 from app.inventory.items.router import router as ItemRouter
 from app.inventory.warehouses.router import router as WarehouseRouter
+from app.inventory.stock.stock_ledger.router import router as StockLedgerRouter
+from app.inventory.stock.stock_balance.router import router as StockBalanceRouter
 
 Base.metadata.create_all(bind=engine)
 app=FastAPI()
@@ -26,3 +28,5 @@ app.include_router(CurrencyRouter)
 app.include_router(UomRouter)
 app.include_router(ItemRouter)
 app.include_router(WarehouseRouter)
+app.include_router(StockLedgerRouter)
+app.include_router(StockBalanceRouter)
