@@ -18,4 +18,4 @@ class UserSession(Base):
     browser_name: Mapped[str] = mapped_column(nullable=False, default = "System")
     device_name: Mapped[str] = mapped_column(nullable=False, default = "System")
 
-    user: Mapped["User"] = relationship("User", back_populates="session")
+    user: Mapped["User"] = relationship("User", back_populates="session") #type: ignore
