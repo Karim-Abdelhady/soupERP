@@ -33,5 +33,9 @@ class Warehouse(Base):
     warehouse_type: Mapped["WarehouseType"] = relationship(back_populates="warehouses")
     parent: Mapped[Optional["Warehouse"]] = relationship("Warehouse",remote_side=[id], back_populates="children")
     children: Mapped[List["Warehouse"]] = relationship("Warehouse", back_populates="parent")
-    warehousestockbalance: Mapped[List["StockBalance"]] = relationship("StockBalance", back_populates="warehouse")
-    warehousestockledger: Mapped[List["StockLedger"]] = relationship("StockLedger", back_populates="warehouse")
+    warehousestockbalance: Mapped[List["StockBalance"]] = relationship("StockBalance", back_populates="warehouse") #type: ignore
+    warehousestockledger: Mapped[List["StockLedger"]] = relationship("StockLedger", back_populates="warehouse") #type: ignore
+    source_stock_entry: Mapped[List["StockEntry"]] = relationship("StockEntry", foreign_keys="[StockEntry.source_warehouse_id]", back_populates="source_warehouse") #type: ignore
+    target_stock_entry: Mapped[List["StockEntry"]] = relationship("StockEntry", foreign_keys="[StockEntry.target_warehouse_id]", back_populates="target_warehouse") #type: ignore
+    source_stock_entry_line: Mapped[List["StockEntryLine"]] = relationship("StockEntryLine", foreign_keys="[StockEntryLine.source_warehouse_id]", back_populates="source_warehouse") #type: ignore
+    target_stock_entry_line: Mapped[List["StockEntryLine"]] = relationship("StockEntryLine", foreign_keys="[StockEntryLine.target_warehouse_id]", back_populates="target_warehouse") #type: ignore

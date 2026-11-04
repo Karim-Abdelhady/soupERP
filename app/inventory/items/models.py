@@ -40,7 +40,7 @@ class Item(Base):
     created_by: Mapped[str] = mapped_column(nullable=False, default = "System")
 
     group: Mapped["ItemGroup"] = relationship(back_populates="items")
-    uom: Mapped["UnitOfMeasure"] = relationship(back_populates="items")
-    itemstockbalance: Mapped[List["StockBalance"]] = relationship("StockBalance", back_populates="item")
-    itemstockledger: Mapped[List["StockLedger"]] = relationship("StockLedger", back_populates="item")
-    
+    uom: Mapped["UnitOfMeasure"] = relationship(back_populates="items") #type: ignore
+    itemstockbalance: Mapped[List["StockBalance"]] = relationship("StockBalance", back_populates="item") #type:ignore
+    itemstockledger: Mapped[List["StockLedger"]] = relationship("StockLedger", back_populates="item") #type: ignore
+    stock_entry_line: Mapped["StockEntryLine"] = relationship("StockEntryLine", back_populates="items") #type: ignore

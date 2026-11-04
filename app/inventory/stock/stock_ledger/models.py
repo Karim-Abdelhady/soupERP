@@ -22,5 +22,5 @@ class StockLedger(Base):
     voucher_line_id: Mapped[str] = mapped_column(nullable=False, default = "SINV-001-L12")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default = lambda: datetime.now(timezone.utc), nullable=False)
 
-    item: Mapped["Item"] = relationship(back_populates="itemstockledger")
-    warehouse: Mapped["Warehouse"] = relationship(back_populates="warehousestockledger")
+    item: Mapped["Item"] = relationship(back_populates="itemstockledger") #type: ignore
+    warehouse: Mapped["Warehouse"] = relationship(back_populates="warehousestockledger") #type: ignore

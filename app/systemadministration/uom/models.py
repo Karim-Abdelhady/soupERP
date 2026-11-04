@@ -19,7 +19,8 @@ class UnitOfMeasure(Base):
 
     from_conversion = relationship("UnitConversion", foreign_keys="[UnitConversion.from_uom_id]", back_populates="from_unit")
     to_conversion = relationship("UnitConversion", foreign_keys="[UnitConversion.to_uom_id]", back_populates="to_unit")
-    items: Mapped[list["Item"]] = relationship(back_populates="uom")
+    items: Mapped[list["Item"]] = relationship(back_populates="uom") #type: ignore
+    stock_entry_line: Mapped[list["StockEntryLine"]] = relationship("StockEntryLine", back_populates="uom") #type: ignore
     
 class UnitConversion(Base):
     __tablename__ = "unitconversions"

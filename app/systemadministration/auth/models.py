@@ -22,7 +22,7 @@ class Role(Base):
     modified_by: Mapped[str] = mapped_column(nullable=False, default = "system")
     created_by: Mapped[str] = mapped_column(nullable=False, default = "system")
     permissions: Mapped[list["Permission"]] = relationship(secondary=role_permissions, back_populates="roles")  
-    users: Mapped[list["User"]] = relationship(secondary=user_roles, back_populates="roles")
+    users: Mapped[list["User"]] = relationship(secondary=user_roles, back_populates="roles") #type: ignore
 
 class Permission(Base):
     __tablename__ = "permissions"

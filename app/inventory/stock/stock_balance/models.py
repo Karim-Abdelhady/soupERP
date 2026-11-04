@@ -16,5 +16,5 @@ class StockBalance(Base):
     stock_value: Mapped[float] = mapped_column(nullable=False, default = 0.0)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default = lambda: datetime.now(timezone.utc), nullable=False)
 
-    item: Mapped["Item"] = relationship(back_populates="itemstockbalance")
-    warehouse: Mapped["Warehouse"] = relationship(back_populates="warehousestockbalance")
+    item: Mapped["Item"] = relationship(back_populates="itemstockbalance") #type: ignore
+    warehouse: Mapped["Warehouse"] = relationship(back_populates="warehousestockbalance") #type: ignore

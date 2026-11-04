@@ -23,3 +23,13 @@ def get_stock_ledger_item_history(db: Session, item_id: int):
 def get_stock_ledger_warehouse_history(db: Session, warehouse_id: int):
     statement = select(StockLedger).where(StockLedger.warehouse_id == warehouse_id)
     return db.scalars(statement).all()
+
+def get_stock_ledger_by_item_and_warehouse(db: Session, item_id: int, warehouse_id: int):
+    statement = (
+        select(StockLedger)
+        .where(
+            StockLedger.item_id == item_id,
+            StockLedger.warehouse_id == warehouse_id
+        )
+    )
+    return db.scalar(statement)
