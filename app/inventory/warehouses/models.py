@@ -39,3 +39,4 @@ class Warehouse(Base):
     target_stock_entry: Mapped[List["StockEntry"]] = relationship("StockEntry", foreign_keys="[StockEntry.target_warehouse_id]", back_populates="target_warehouse") #type: ignore
     source_stock_entry_line: Mapped[List["StockEntryLine"]] = relationship("StockEntryLine", foreign_keys="[StockEntryLine.source_warehouse_id]", back_populates="source_warehouse") #type: ignore
     target_stock_entry_line: Mapped[List["StockEntryLine"]] = relationship("StockEntryLine", foreign_keys="[StockEntryLine.target_warehouse_id]", back_populates="target_warehouse") #type: ignore
+    stock_reconciliations: Mapped[List["StockReconciliation"]] = relationship("StockReconciliation", back_populates="warehouse") #type: ignore

@@ -53,7 +53,7 @@ class StockEntryCreate(BaseModel):
     source_warehouse_id: int | None = None
     target_warehouse_id: int | None = None
     remarks: str
-    lines: List[StockEntryLineCreate]
+    stock_entry_lines: List[StockEntryLineCreate]
 
 class StockEntryLineUpdate(BaseModel):
     stock_entry_id: int | None = None
@@ -71,4 +71,4 @@ class StockEntryUpdate(BaseModel):
     source_warehouse_id: int | None = None
     target_warehouse_id: int | None = None
     remarks: str | None = None
-    lines: List[StockEntryLineUpdate]
+    stock_entry_lines: List[StockEntryLineUpdate]

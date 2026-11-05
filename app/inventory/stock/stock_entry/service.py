@@ -107,7 +107,7 @@ def cancel_stock_entry(db: Session, stock_id: int):
     if stock_entry.status == Status.CANCELED:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail = "Stock Entry is already canceled")
 
-    if stock_entry.status == Status.CANCELED:
+    if stock_entry.status == Status.SUBMITTED:
         for line in stock_entry.stock_entry_lines:
             src_wh = line.source_warehouse_id or stock_entry.source_warehouse_id
             tgt_wh = line.target_warehouse_id or stock_entry.target_warehouse_id
