@@ -42,7 +42,7 @@ class StockEntryLine(Base): #rows
     line_amount: Mapped[int] = mapped_column(default = 1, nullable=False)
 
     stock_entry: Mapped["StockEntry"] = relationship("StockEntry", back_populates="stock_entry_lines")
-    items: Mapped[List["Item"]] = relationship("Item", back_populates="stock_entry_line") #type: ignore
+    items: Mapped["Item"] = relationship("Item", back_populates="stock_entry_line") #type: ignore
     source_warehouse = relationship("Warehouse", foreign_keys=[source_warehouse_id], back_populates="source_stock_entry_line")
     target_warehouse = relationship("Warehouse", foreign_keys=[target_warehouse_id], back_populates="target_stock_entry_line")
     uom: Mapped["UnitOfMeasure"] = relationship("UnitOfMeasure", back_populates="stock_entry_line") #type: ignore

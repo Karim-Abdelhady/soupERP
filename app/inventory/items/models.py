@@ -43,4 +43,5 @@ class Item(Base):
     uom: Mapped["UnitOfMeasure"] = relationship(back_populates="items") #type: ignore
     itemstockbalance: Mapped[List["StockBalance"]] = relationship("StockBalance", back_populates="item") #type:ignore
     itemstockledger: Mapped[List["StockLedger"]] = relationship("StockLedger", back_populates="item") #type: ignore
-    stock_entry_line: Mapped["StockEntryLine"] = relationship("StockEntryLine", back_populates="items") #type: ignore
+    stock_entry_line: Mapped[List["StockEntryLine"]] = relationship("StockEntryLine", back_populates="items") #type: ignore
+    stock_reconciliation_lines: Mapped[List["StockReconciliationLine"]] = relationship("StockReconciliationLine", back_populates="item") #type: ignore
