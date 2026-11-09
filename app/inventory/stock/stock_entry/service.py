@@ -33,7 +33,7 @@ def create_stock_entry(db: Session, new_stock: StockEntryCreate):
     validate_warehouse_rules(new_stock.purpose, new_stock.source_warehouse_id, new_stock.target_warehouse_id)
     
     new_data = new_stock.model_dump(exclude_unset=True)
-    lines_data = new_data.pop("lines", [])
+    lines_data = new_data.pop("stock_entry_lines", [])
     StockEntry.status = Status.DRAFT
     db_stock_entry = StockEntry(**new_data)
     db.add(db_stock_entry)
