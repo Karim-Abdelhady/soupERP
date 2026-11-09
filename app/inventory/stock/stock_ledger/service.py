@@ -4,6 +4,7 @@ from app.inventory.stock.stock_balance.models import StockBalance
 from app.inventory.stock.stock_balance import repository as SBrepository
 from app.inventory.stock.stock_ledger.schemas import StockLedgerCreate
 from fastapi import HTTPException,status
+from app.inventory.stock.stock_balance.valuation_service import moving_weight_average
 
 def create_stock_ledger_entry(db: Session, data: StockLedgerCreate):
     balance = SBrepository.get_stock_balance_by_item_and_warehouse(db, data.item_id, data.warehouse_id)
@@ -23,16 +24,22 @@ def create_stock_ledger_entry(db: Session, data: StockLedgerCreate):
     new_actual_qty = balance.actual_qty + data.quantity_delta
     if new_actual_qty < 0:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail = "Insufficient stock")
+
+    if new_actual_qty < 0:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail = "Insufficient stock")
     if data.quantity_delta > 0: #ingoing
-        rate = data.incoming_rate
-        total_current_value = balance.actual_qty + balance.valuation_rate
-        incoming_value = data.quantity_delta * rate
-        new_valuation_rate = ((total_current_value+incoming_value) / new_actual_qty if new_actual_qty > 0 else rate)
+        incoming_qty = float(data.quantity_delta)
+        incoming_rate = float(data.incoming_rate)
+        new_valuation_rate, new_stock_value = moving_weight_average(current_qty = balance.actual_qty, current_rate = balance.valuation_rate, incoming_qty = incoming_qty, incoming_rate = incoming_rate)
+        rate_recorded = incoming_rate
+        stock_value_delta = incoming_qty * incoming_rate
     else: #outgoing
-        rate = balance.valuation_rate if balance.valuation_rate > 0 else data.outgoing_rate
+        outgoing_qty = abs(float(data.quantity_delta))
+        rate_recorded = balance.valuation_rate if balance.valuation_rate > 0 else float(data.outgoing_rate)
         new_valuation_rate = balance.valuation_rate
-    stock_value_delta = data.quantity_delta * rate
-    new_stock_value = balance.stock_value + stock_value_delta
+        stock_value_delta = -(outgoing_qty* rate_recorded)
+        new_stock_value = balance.stock_value + stock_value_delta
+
     new_available_qty = new_actual_qty - balance.reserved_qty
 
     ledger_data = {
@@ -40,8 +47,8 @@ def create_stock_ledger_entry(db: Session, data: StockLedgerCreate):
         "warehouse_id": data.warehouse_id,
         "quantity_delta": data.quantity_delta,
         "qty_after_transaction": new_actual_qty,
-        "incoming_rate": data.incoming_rate if data.quantity_delta > 0 else 0.0,
-        "outgoing_rate": rate if data.quantity_delta < 0 else 0.0,
+        "incoming_rate": rate_recorded if data.quantity_delta > 0 else 0.0,
+        "outgoing_rate": rate_recorded if data.quantity_delta < 0 else 0.0,
         "stock_value_delta": stock_value_delta,
         "stock_value_after_transaction": new_stock_value,
         "voucher_type": data.voucher_type,
