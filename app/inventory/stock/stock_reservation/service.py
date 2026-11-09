@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 from fastapi import HTTPException, status
 from app.inventory.stock.stock_reservation.enums import Status
 from app.inventory.stock.stock_reservation.models import StockReservation
-from app.inventory.stock.stock_reservation import repoistory
+from soupERP.app.inventory.stock.stock_reservation import repository
 from app.inventory.stock.stock_reservation.schemas import StockReservationCreate
 from app.inventory.stock.stock_balance import repository as SBrepository
 from app.inventory.stock.stock_balance.models import StockBalance
@@ -23,14 +23,14 @@ def create_stock_reservation(db: Session, new_reservation: StockReservationCreat
     new_data["status"] = Status.ACTIVE
     new_data["reserved_at"] = datetime.now(timezone.utc)
 
-    reservation = repoistory.create_stock_reservation(db, new_data)
+    reservation = repository.create_stock_reservation(db, new_data)
     db.commit()
     db.refresh(balance)
     db.refresh(reservation)
     return reservation
 
 def fulfill_stock_reservation(db: Session, reservation_id: int):
-    reservation = repoistory.get_stock_reservation_by_id(db, reservation_id)
+    reservation = repository.get_stock_reservation_by_id(db, reservation_id)
     if reservation is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail = "Stock Reservation ID is not found")
 
@@ -53,7 +53,7 @@ def fulfill_stock_reservation(db: Session, reservation_id: int):
     return reservation
 
 def release_stock_reservation(db: Session, reservation_id):
-    reservation = repoistory.get_stock_reservation_by_id(db, reservation_id)
+    reservation = repository.get_stock_reservation_by_id(db, reservation_id)
     if reservation is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail = "Stock Reservation ID is not found")    
 
@@ -77,36 +77,36 @@ def release_stock_reservation(db: Session, reservation_id):
     return reservation
 
 def get_reserved_qty(db: Session, item_id: int, quantity: int):
-    quantity = repoistory.get_reserved_qty(db, item_id, quantity)
+    quantity = repository.get_reserved_qty(db, item_id, quantity)
     if quantity is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail = "Item does not have a quantity")
     return quantity
 
 def get_stock_reservations(db: Session):
-    reservations = repoistory.get_stock_reservations(db)
+    reservations = repository.get_stock_reservations(db)
     if not reservations:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail = "No stock reservations were found")
     return reservations
 
 def get_stock_reservation_by_id(db: Session, reservation_id: int):
-    reservation = repoistory.get_stock_reservation_by_id(db, reservation_id)
+    reservation = repository.get_stock_reservation_by_id(db, reservation_id)
     if reservation is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail = "Stock Reservation ID is not found")
     return reservation
 
 def get_stock_reservation_by_item_id(db: Session, item_id: int):
-    reservation = repoistory.get_stock_reservations_by_item_id(db, item_id)
+    reservation = repository.get_stock_reservations_by_item_id(db, item_id)
     if not reservation:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail = "Item ID does not belong to any Stock Reservation")
     return reservation
 
 def get_stock_reservation_by_warehouse_id(db: Session, warehouse_id: int):
-    reservation = repoistory.get_stock_reservations_by_warehouse_id(db, warehouse_id)
+    reservation = repository.get_stock_reservations_by_warehouse_id(db, warehouse_id)
     if not reservation:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail = "Warehoues ID does not belong to any Stock Reservation")
     return reservation
 
 def get_stock_reservation_by_item_and_warehouse(db: Session, item_id: int, warehouse_id: int):
-    reservation = repoistory.get_stock_reservations_by_item_and_warehouse(db, item_id, warehouse_id)
+    reservation = repository.get_stock_reservations_by_item_and_warehouse(db, item_id, warehouse_id)
     if not reservation:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail = "Item and Warehouse do not belong to a Stock Reservation")
