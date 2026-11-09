@@ -1,9 +1,8 @@
 from database.database import Base
-from datetime import datetime, timezone
+from datetime import datetime
 from app.inventory.stock.stock_reservation.enums import Status
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy import ForeignKey, DateTime
-from typing import List
 
 class StockReservation(Base):
     __tablename__ = "stockreservations"

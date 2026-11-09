@@ -30,16 +30,16 @@ def get_stock_reservations_by_warehouse_id(warehouse_id: int, db: Session = Depe
 
 @router.get("/stockreservations/item/{item_id}/warehouse/{warehouse_id}", response_model=StockReservationResponse, tags = ["Stock Reservation"])
 def get_stock_resrevations_by_item_and_warehouse(item_id: int, warehouse_id: int, db: Session = Depends(get_db)):
-    return get_stock_resrevations_by_item_and_warehouse(db, item_id, warehouse_id)
+    return service.get_stock_reservation_by_item_and_warehouse(db, item_id, warehouse_id)
 
 @router.post("/stockreservations/active/", response_model=StockReservationResponse, tags = ["Stock Reservation"])
 def create_stock_reservation(new_reservation: StockReservationCreate, db: Session = Depends(get_db)):
-    return create_stock_reservation(db, new_reservation)
+    return service.create_stock_reservation(db, new_reservation)
 
 @router.post("/stockreservations/{reservation_id}/fulfill/", response_model=StockReservationResponse, tags = ["Stock Reservation"])
 def fulfill_stock_reservation(reservation_id: int, db: Session = Depends(get_db)):
-    return fulfill_stock_reservation(db, reservation_id)
+    return service.fulfill_stock_reservation(db, reservation_id)
 
 @router.post("/stockreservations/{reservation_id}/release/", response_model=StockReservationResponse, tags = ["Stock Reservation"])
 def release_stock_reservation(reservation_id: int, db: Session = Depends(get_db)):
-    return release_stock_reservation(db, reservation_id)
+    return service.release_stock_reservation(db, reservation_id)

@@ -2,11 +2,9 @@ from sqlalchemy.orm import Session
 from datetime import datetime, timezone
 from fastapi import HTTPException, status
 from app.inventory.stock.stock_reservation.enums import Status
-from app.inventory.stock.stock_reservation.models import StockReservation
 from soupERP.app.inventory.stock.stock_reservation import repository
 from app.inventory.stock.stock_reservation.schemas import StockReservationCreate
 from app.inventory.stock.stock_balance import repository as SBrepository
-from app.inventory.stock.stock_balance.models import StockBalance
 
 def create_stock_reservation(db: Session, new_reservation: StockReservationCreate):
     balance = SBrepository.get_stock_balance_by_item_and_warehouse(db, new_reservation.item_id, new_reservation.warehouse_id)
