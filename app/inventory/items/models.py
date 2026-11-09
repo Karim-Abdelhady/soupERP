@@ -45,3 +45,4 @@ class Item(Base):
     itemstockledger: Mapped[List["StockLedger"]] = relationship("StockLedger", back_populates="item") #type: ignore
     stock_entry_line: Mapped[List["StockEntryLine"]] = relationship("StockEntryLine", back_populates="items") #type: ignore
     stock_reconciliation_lines: Mapped[List["StockReconciliationLine"]] = relationship("StockReconciliationLine", back_populates="item") #type: ignore
+    item_stock_reservations: Mapped[List["StockReservation"]] = relationship("StockReservation", back_populates="item") #type: ignore
