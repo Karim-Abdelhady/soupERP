@@ -34,7 +34,6 @@ class ItemCreate(BaseModel):
     is_batch_tracked: bool
     is_serial_tracked: bool
     has_expiry_date: bool
-    expiry_date: datetime | None = None
     valuation_method: str | None = None
 
 class ItemResponse(BaseModel):
@@ -48,7 +47,6 @@ class ItemResponse(BaseModel):
     is_batch_tracked: bool
     is_serial_tracked: bool
     has_expiry_date: bool 
-    expiry_date: datetime | None = None
     valuation_method: str | None = None
     created_at: datetime
     updated_at: datetime

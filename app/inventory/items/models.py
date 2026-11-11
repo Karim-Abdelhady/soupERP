@@ -33,7 +33,6 @@ class Item(Base):
     is_batch_tracked: Mapped[bool] = mapped_column(nullable=False, default = False)
     is_serial_tracked: Mapped[bool] = mapped_column(nullable=False, default = False)
     has_expiry_date: Mapped[bool] = mapped_column(nullable=False, default = False)
-    expiry_date: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=True)
     valuation_method: Mapped[str] = mapped_column(nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default= lambda: datetime.now(timezone.utc))
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default = lambda: datetime.now(timezone.utc), onupdate= lambda: datetime.now(timezone.utc))
@@ -46,3 +45,5 @@ class Item(Base):
     stock_entry_line: Mapped[List["StockEntryLine"]] = relationship("StockEntryLine", back_populates="items") #type: ignore
     stock_reconciliation_lines: Mapped[List["StockReconciliationLine"]] = relationship("StockReconciliationLine", back_populates="item") #type: ignore
     item_stock_reservations: Mapped[List["StockReservation"]] = relationship("StockReservation", back_populates="item") #type: ignore
+    item_batch_track: Mapped[List["ItemBatch"]] = relationship("ItemBatch", back_populates="items") #type: ignore
+    item_serial_number: Mapped[List["SerialNumber"]] = relationship("SerialNumber", back_populates="items") #type: ignore

@@ -2,7 +2,7 @@ from sqlalchemy.orm import Session
 from datetime import datetime, timezone
 from fastapi import HTTPException, status
 from app.inventory.stock.stock_reservation.enums import Status
-from soupERP.app.inventory.stock.stock_reservation import repository
+from app.inventory.stock.stock_reservation import repository
 from app.inventory.stock.stock_reservation.schemas import StockReservationCreate
 from app.inventory.stock.stock_balance import repository as SBrepository
 
