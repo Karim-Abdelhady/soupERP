@@ -43,10 +43,6 @@ def create_item(new_item: ItemCreate, db: Session = Depends(get_db)):
 def update_item(item_id: int, update_item: ItemUpdate, db: Session = Depends(get_db)):
     return service.update_item(db, item_id, update_item)
 
-@router.patch("/items/track/{item_id}", response_model = ItemResponse, tags = ["Item"])
-def track_item(item_id: int, track_item: TrackUpdate, db: Session = Depends(get_db)):
-    return service.track_item(db, item_id, track_item)
-
 @router.patch("/items/activate/{item_id}/", response_model=Activation, tags = ["Item"])
 def activate_item(item_id: int, activate: Activation, db: Session = Depends(get_db)):
     return service.activate_item(db, item_id, activate)

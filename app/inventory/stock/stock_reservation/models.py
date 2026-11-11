@@ -19,5 +19,5 @@ class StockReservation(Base):
     released_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=True)
     fulfilled_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=True)
 
-    item = Mapped["Item"] = relationship("Item", back_populates="item_stock_reservations") #type: ignore
-    warehouse = Mapped["Warehouse"] = relationship("Warehouse", back_populates="warehouse_stock_reservations") #type: ignore
+    item: Mapped["Item"] = relationship("Item", back_populates="item_stock_reservations") #type: ignore
+    warehouse: Mapped["Warehouse"] = relationship("Warehouse", back_populates="warehouse_stock_reservations") #type: ignore

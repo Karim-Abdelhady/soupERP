@@ -51,11 +51,6 @@ def update_item(db: Session, update_item: Item):
     db.refresh(update_item)
     return update_item
 
-def track_item(db: Session, track_item: Item):
-    db.commit()
-    db.refresh(track_item)
-    return track_item
-
 def activation(db: Session, activate: Activation):
     db.commit()
     db.refresh(activate)
