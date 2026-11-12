@@ -49,12 +49,6 @@ def get_serials_by_item_id(db: Session, item_id: int):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail = "Item ID is nto associated with Serial Number")
     return serials
 
-def get_serials_by_item_and_warehouse(db: Session, item_id: int, warehouse_id: int):
-    serials = repository.get_serials_by_item_and_warehouse(db, item_id, warehouse_id)
-    if not serials:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail = "Item and/or Warehouse is not associated with a Serial Number")
-    return serials
-
 def create_batch_number(db: Session, new_batch: BatchCreate):
     existing_batch = repository.get_batch_by_batch_number(db, new_batch.batch_number)
     if existing_batch is not None:

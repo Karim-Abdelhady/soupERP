@@ -47,3 +47,4 @@ class Item(Base):
     item_stock_reservations: Mapped[List["StockReservation"]] = relationship("StockReservation", back_populates="item") #type: ignore
     item_batch_track: Mapped[List["ItemBatch"]] = relationship("ItemBatch", back_populates="items") #type: ignore
     item_serial_number: Mapped[List["SerialNumber"]] = relationship("SerialNumber", back_populates="items") #type: ignore
+    item_reorder_rule: Mapped[List["ItemReorderRule"]] = relationship("ItemReorderRule", back_populates="items") #type: ignore

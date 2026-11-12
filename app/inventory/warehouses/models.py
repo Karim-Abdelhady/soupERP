@@ -42,3 +42,4 @@ class Warehouse(Base):
     stock_reconciliations: Mapped[List["StockReconciliation"]] = relationship("StockReconciliation", back_populates="warehouse") #type: ignore
     warehouse_stock_reservations: Mapped[List["StockReservation"]] = relationship("StockReservation", back_populates="warehouse") #type: ignore
     warehouse_serial_number: Mapped[List["SerialNumber"]] = relationship("SerialNumber", back_populates="warehouses") #type: ignore
+    warehouse_reorder_rule: Mapped[List["ItemReorderRule"]] = relationship("ItemReorderRule", back_populates="warehouses") #type: ignore
