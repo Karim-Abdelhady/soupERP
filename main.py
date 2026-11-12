@@ -17,7 +17,7 @@ from app.inventory.stock.stock_entry.router import router as StockEntryRouter
 from app.inventory.stock.stock_reconciliation.router import router as StockReconciliationRouter
 from app.inventory.stock.stock_reservation.router import router as StockReservationRouter
 from app.inventory.tracking_items.router import router as TrackingRouter
-
+from app.inventory.reorder.router import router as ReorderRouter
 
 Base.metadata.create_all(bind=engine)
 app=FastAPI()
@@ -39,3 +39,4 @@ app.include_router(StockEntryRouter)
 app.include_router(StockReconciliationRouter)
 app.include_router(StockReservationRouter)
 app.include_router(TrackingRouter)
+app.include_router(ReorderRouter)
