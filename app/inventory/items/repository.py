@@ -1,7 +1,9 @@
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 from sqlalchemy import select
 from .models import Item, ItemGroup
 from .schemas import Activation
+from app.inventory.stock.stock_balance.models import StockBalance
+from app.inventory.tracking_items.models import SerialNumber
 
 def get_item_groups(db: Session):
     statement = select(ItemGroup)
@@ -37,6 +39,17 @@ def get_item_by_id(db: Session, item_id: int):
 
 def get_item_by_code(db: Session, item_code: str):
     statement = select(Item).where(Item.item_code == item_code)
+    return db.scalar(statement)
+
+def get_item_with_batch_and_serial(db: Session, item_id: int):
+    statement = (
+        select(Item)
+        .options(
+            selectinload(Item.item_batch_track),
+            selectinload(Item.item_serial_number)
+        )
+        .where(Item.id == item_id)
+    )
     return db.scalar(statement)
 
 def create_item(db: Session, new_item: Item):

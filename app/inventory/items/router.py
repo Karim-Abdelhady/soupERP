@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from app.inventory.items import service
-from app.inventory.items.schemas import TrackUpdate, ItemResponse, ItemGroupResponse, ItemGroupCreate, ItemCreate, ItemUpdate, ItemGroupUpdate, Activation
+from app.inventory.items.schemas import ItemResponse, ItemGroupResponse, ItemGroupCreate, ItemCreate, ItemUpdate, ItemGroupUpdate, Activation, ItemwithBatchandSerialResponse
 from database.database import get_db
 from typing import List
 
@@ -34,6 +34,10 @@ def get_items(db: Session = Depends(get_db)):
 @router.get("/items/{item_id}/", response_model=ItemResponse, tags = ["Item"])
 def get_item_by_id(item_id: int, db: Session = Depends(get_db)):
     return service.get_item_by_id(db, item_id)
+
+@router.get("/items/{item_id}/tracks/", response_model = ItemwithBatchandSerialResponse, tags = ["Item"])
+def get_item_with_batch_and_serial(item_id: int, db: Session = Depends(get_db)):
+    return service.get_item_with_batch_and_serial(db, item_id)
 
 @router.post("/items/", response_model=ItemResponse, tags = ["Item"])
 def create_item(new_item: ItemCreate, db: Session = Depends(get_db)):

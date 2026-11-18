@@ -3,6 +3,7 @@ from app.inventory.warehouses import repository
 from fastapi import HTTPException,status
 from app.inventory.warehouses.schemas import WarehouseCreate, WarehouseTypeCreate, WarehouseUpdate, WarehouseTypeUpdate, Activation
 from datetime import datetime, timezone
+from app.inventory.stock.stock_balance import repository as SBrepository
 
 def get_warehouse_types(db: Session):
     types = repository.get_warehouse_types(db)
@@ -28,7 +29,8 @@ def update_warehouse_type(db: Session, type_id: int, update_warehouse: Warehouse
     type = repository.get_warehouse_type_by_id(db, type_id)
     if type is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail = "Warehouse type with ID is not found")
-
+    if not type.is_active:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail = "Warehouse type is inactive")
     update_data = update_warehouse.model_dump(exclude_unset=True)
     for key,value in update_data.items():
         setattr(type, key, value)
@@ -72,7 +74,10 @@ def update_warehouse(db: Session, warehouse_id: int, update_warehouse: Warehouse
     warehouse = repository.get_warehouse_by_id(db, warehouse_id)
     if warehouse is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail = "Warehouse with ID is not found")
-
+    
+    if not warehouse.is_active:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail = "Warehouse is inactive")
+    
     update_data = update_warehouse.model_dump(exclude_unset=True)
 
     target_is_group = update_data.get("is_group", warehouse.is_group)
@@ -102,8 +107,16 @@ def activate_warehouse(db: Session, warehouse_id: int, activate: Activation):
     if warehouse is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail = "Warehouse with ID is not found")
 
+    if activate.is_active is False:
+        balances = SBrepository.get_stock_balance_warehouse_history(db, warehouse_id)    
+        total_stock = sum(b.actual_qty for b in balances) if balances else 0
+
+        if total_stock > 0:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Cannot deactivate warehouse since it has an active stock quantity.")
+
     if activate.is_active is not None:
         warehouse.is_active = activate.is_active
+
 
     warehouse.updated_at = datetime.now(timezone.utc)
 

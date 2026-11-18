@@ -28,3 +28,17 @@ def get_stock_balance_by_item_and_warehouse(db: Session, item_id: int, warehouse
         )
     )
     return db.scalar(statement)
+
+def get_stock_balance_by_item_warehouse_and_batch(db: Session, item_id: int, warehouse_id: int, batch_id: int):
+    statement = (
+        select(StockBalance)
+        .where(
+            StockBalance.item_id == item_id,
+            StockBalance.warehouse_id == warehouse_id
+        )
+    )
+    if batch_id:
+        statement = statement.where(StockBalance.batch_id == batch_id)
+    else:
+        statement = statement.where(StockBalance.batch_id.is_(None))
+    return db.scalar(statement)

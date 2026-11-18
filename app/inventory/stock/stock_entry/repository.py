@@ -25,7 +25,7 @@ def get_stock_entry_by_document_number(db: Session, document_number: str):
     statement = select(StockEntry).where(StockEntry.document_number == document_number)
     return db.scalar(statement)
 
-def create_stock_entry(db: Session, entry: StockEntry):
+def create_stock_entry(db: Session, entry: StockEntry) -> StockEntry:
     db.add(entry)
     db.commit()
     db.refresh(entry)

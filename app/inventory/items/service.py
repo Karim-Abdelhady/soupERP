@@ -1,8 +1,13 @@
 from sqlalchemy.orm import Session
+from sqlalchemy import select, func
 from fastapi import HTTPException, status
-from .schemas import ItemCreate, ItemGroupCreate, ItemUpdate, ItemGroupUpdate, Activation, TrackUpdate
+from .schemas import ItemCreate, ItemGroupCreate, ItemUpdate, ItemGroupUpdate, Activation, ItemwithBatchandSerialResponse
 from app.inventory.items import repository
 from datetime import datetime, timezone
+from app.inventory.stock.stock_balance import repository as SBrepository
+from app.inventory.stock.stock_ledger import repository as LedgerRepository
+from app.inventory.stock.stock_balance.models import StockBalance
+from app.inventory.warehouses import repository as WarehouseRepository
 
 def get_item_groups(db: Session):
     groups = repository.get_item_groups(db)
@@ -28,6 +33,9 @@ def update_item_group(db: Session, group_id: int, update_group: ItemGroupUpdate)
     group = repository.get_item_group_by_id(db, group_id)
     if group is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail = "Group with ID is not found")
+
+    if not group.is_active:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail = "Item Group is not active")
 
     update_data = update_group.model_dump(exclude_unset=True)
     for key, value in update_data.items():
@@ -60,11 +68,36 @@ def get_item_by_id(db: Session, item_id: int):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail = "Item with ID is not found")
     return item
 
+def get_item_with_batch_and_serial(db: Session, item_id: int):
+    item = repository.get_item_with_batch_and_serial(db, item_id)
+    if item is None:
+        return None
+
+    for batch in item.item_batch_track:
+        statement = select(StockBalance).where(StockBalance.batch_id == batch.id, StockBalance.actual_qty > 0)
+        balances = db.scalars(statement).all()
+        total_batch_qty = sum(b.actual_qty for b in balances)
+        batch.actual_qty = total_batch_qty
+
+        warehouses = []
+        for b in balances:
+            warehouse = WarehouseRepository.get_warehouse_by_id(db, b.warehouse_id)
+            warehouse_name = warehouse.name if warehouse else f"Warehouse {b.warehouse_id}"
+            warehouses.append({
+                "warehouse_id": b.warehouse_id,
+                "warehouse_name": warehouse_name,
+                "quantity": b.actual_qty
+            })
+        batch.warehouses = warehouses
+
+    return item
+
 def create_item(db: Session, new_item: ItemCreate):
     existing_item = repository.get_item_by_code(db, new_item.item_code)
     if existing_item is not None:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,detail = "Item already exists")
-
+    if new_item.has_expiry_date and not new_item.is_batch_tracked:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail = "Item cannot have an expiry date unless batch tracking is enabled")
     new_data = new_item.model_dump(exclude_unset=True)
     return repository.create_item(db, new_data)
 
@@ -72,7 +105,20 @@ def update_item(db: Session, item_id: int, update_item: ItemUpdate):
     item = repository.get_item_by_id(db, item_id)
     if item is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail = "Item with ID is not found")
+    if not item.is_active:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail = "Item is not active")
+    if update_item.has_expiry_date and not update_item.is_batch_tracked:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail = "Item cannot have an expiry date unless batch tracking is enabled")
+
     new_data = update_item.model_dump(exclude_unset=True)
+
+    new_uom = new_data.get("uom")
+    if new_uom is not None and new_uom != item.uom:
+        ledger_entries = LedgerRepository.get_stock_ledger_item_history(db, item_id)
+
+        if ledger_entries:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail = "Cannot modify Base UOM because stock transactions already exist for this item")
+    
     for key, value in new_data.items():
         setattr(item, key, value)
     item.updated_at = datetime.now(timezone.utc)
@@ -83,6 +129,13 @@ def activate_item(db: Session, item_id: int, activate: Activation):
     item = repository.get_item_by_id(db, item_id)
     if item is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail = "Item with ID is not found")
+
+    if activate.is_active is False:
+        balances = SBrepository.get_stock_balance_item_history(db, item_id)
+        total_stock = sum(b.actual_qty for b in balances) if balances else 0
+
+        if total_stock > 0:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail = "Cannot deactivate item since Item has active stock quantity")        
 
     if activate.is_active is not None:
         item.is_active = activate.is_active

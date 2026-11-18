@@ -2,7 +2,7 @@ from database.database import Base
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy import ForeignKey, DateTime
 from datetime import datetime, timezone
-
+from sqlalchemy.dialects.postgresql import JSON
 
 class StockLedger(Base):
     __tablename__ = "stockledgers"
@@ -21,6 +21,8 @@ class StockLedger(Base):
     voucher_id: Mapped[str] = mapped_column(nullable=False, default = "SINV-001")
     voucher_line_id: Mapped[str] = mapped_column(nullable=False, default = "SINV-001-L12")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default = lambda: datetime.now(timezone.utc), nullable=False)
+    batch_id: Mapped[int] = mapped_column(ForeignKey("itembatches.id"), nullable=True)
+    serial_id: Mapped[list[int]] = mapped_column(JSON, default = list, nullable=True)
 
     item: Mapped["Item"] = relationship(back_populates="itemstockledger") #type: ignore
     warehouse: Mapped["Warehouse"] = relationship(back_populates="warehousestockledger") #type: ignore

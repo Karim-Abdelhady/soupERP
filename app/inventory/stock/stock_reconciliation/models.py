@@ -4,6 +4,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy import ForeignKey, DateTime, Text
 from app.inventory.stock.stock_reconciliation.enums import Status
 from typing import List
+from sqlalchemy.dialects.postgresql import JSON
 
 class StockReconciliation(Base):
     __tablename__ = "stockreconciliations"
@@ -34,6 +35,8 @@ class StockReconciliationLine(Base):
     uom_id: Mapped[int] = mapped_column(ForeignKey("unitmeasures.id"), nullable=False)
     conversion_factor: Mapped[int] = mapped_column(default = 1, nullable=False)
     valuation_rate: Mapped[int] = mapped_column(default = 0, nullable=False)
+    batch_id: Mapped[int] = mapped_column(ForeignKey("itembatches.id"), nullable=True)
+    serial_id: Mapped[list[int]] = mapped_column(JSON, default = list, nullable=True)
 
     stock_reconciliation: Mapped["StockReconciliation"] = relationship("StockReconciliation", back_populates="stock_reconciliation_lines")
     item: Mapped["Item"] = relationship("Item", back_populates="stock_reconciliation_lines") #type: ignore

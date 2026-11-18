@@ -2,6 +2,7 @@ from database.database import Base
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy import ForeignKey, DateTime
 from datetime import datetime, timezone
+from sqlalchemy.dialects.postgresql import JSON
 
 class StockBalance(Base):
     __tablename__ = "stockbalances"
@@ -15,6 +16,8 @@ class StockBalance(Base):
     valuation_rate: Mapped[float] = mapped_column(nullable=False, default = 0.0)
     stock_value: Mapped[float] = mapped_column(nullable=False, default = 0.0)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default = lambda: datetime.now(timezone.utc), nullable=False)
+    batch_id: Mapped[int] = mapped_column(ForeignKey("itembatches.id"), nullable=True)
+    serial_id: Mapped[list[int]] = mapped_column(JSON, default = list, nullable=True)
 
     item: Mapped["Item"] = relationship(back_populates="itemstockbalance") #type: ignore
     warehouse: Mapped["Warehouse"] = relationship(back_populates="warehousestockbalance") #type: ignore

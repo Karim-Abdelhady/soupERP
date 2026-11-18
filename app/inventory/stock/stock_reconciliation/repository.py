@@ -17,6 +17,10 @@ def get_draft_stock_reconciliation(db: Session, document_number: str):
     )
     return db.scalar(statement)
 
+def get_stock_reconciliation_by_document_number(db: Session, document_number: str):
+    statement = select(StockReconciliation).where(StockReconciliation.document_number == document_number)
+    return db.scalar(statement)
+
 def get_stock_reconciliation_by_id(db: Session, rec_id: int):
     statement = select(StockReconciliation).where(StockReconciliation.id == rec_id)
     return db.scalar(statement)

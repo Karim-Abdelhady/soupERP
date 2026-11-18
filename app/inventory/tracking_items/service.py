@@ -12,6 +12,7 @@ from app.inventory.stock.stock_balance.models import StockBalance
 from app.inventory.stock.stock_ledger.models import StockLedger
 from decimal import Decimal
 from app.inventory.tracking_items.models import SerialNumber, stock_ledger_serial_map
+from app.inventory.warehouses import repository as WarehouseRepository
 
 def get_batch_numbers(db: Session):
     batches = repository.get_batch_numbers(db)
@@ -58,15 +59,23 @@ def create_batch_number(db: Session, new_batch: BatchCreate):
     if item is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail = "Item ID is not found")
 
-    if not Item.is_active:
+    if not item.is_active:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail = "Item ID is not active")
 
-    if not Item.is_batch_tracked:
+    if not item.is_batch_tracked:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail = "Item ID must have is_batch_tracked enabled")
 
-    if not Item.has_expiry_date:
+    if not item.has_expiry_date:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail = "Item ID must have has_expiry_Date enabled")
 
+    if not item.is_batch_tracked and not new_batch.expiry_date:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail = "Expiry date is required")
+
+    current_date = datetime.now(timezone.utc)
+    if new_batch.expiry_date < current_date:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail = "Provided date is already expired")
+    if new_batch.expiry_date < new_batch.manufacture_date:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail = "Expiry date is before Manufacture date")
     new_data = new_batch.model_dump(exclude_unset=True)
     new_data["status"] = BatchStatus.ACTIVE
     new_data["item_id"] = new_batch.item_id
@@ -135,9 +144,8 @@ def create_serial_number(db: Session, new_serial: SerialNumberCreate):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail = "Item is not found")
     if not item.is_serial_tracked:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail ="Item must have is_serial_tracked enabled")
-
     new_data = new_serial.model_dump(exclude_unset=True)
-    new_data["status"] = SerialStatus.INSTOCK
+    new_data["status"] = SerialStatus.ACTIVE.value
     new_data["item_id"] = new_serial.item_id
 
     return repository.create_serial_number(db, new_data)
@@ -146,7 +154,7 @@ def update_serial_number(db: Session, serial_id: int, update_serial: SerialNumbe
     serial_number = repository.get_serial_number_by_id(db, serial_id)
     if serial_number is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail = "Serial Number ID is not found")
-    if serial_number.status == SerialStatus.ISSUED:
+    if serial_number.status == SerialStatus.INSTOCK.value:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail = "Serial Number is already issued")
 
     update_data = update_serial.model_dump(exclude_unset=True)
@@ -164,7 +172,7 @@ def issue_serial_number(db: Session, item_id: int, warehouse_id: int, serial_str
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail = "One or more serial numbers do not exist")
 
     for serial in serials:
-        if serial.status != SerialStatus.INSTOCK or serial.current_warehouse_id != warehouse_id:
+        if serial.status != SerialStatus.INSTOCK.value:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail = "Serial Number is not available in warehouse")
 
     balance = SBrepository.get_stock_balance_by_item_and_warehouse(db, item_id, warehouse_id)
@@ -193,8 +201,7 @@ def issue_serial_number(db: Session, item_id: int, warehouse_id: int, serial_str
     db.add(ledger_entry)
     db.flush()
     for serial in serials:
-        serial.status = SerialStatus.ISSUED
-        serial.current_warehouse_id = None
+        serial.status = SerialStatus.INSTOCK.value
 
         db.execute(stock_ledger_serial_map.insert().values(
             stock_ledger_id = ledger_entry.id,

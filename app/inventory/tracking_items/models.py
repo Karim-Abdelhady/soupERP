@@ -4,6 +4,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy import DateTime, ForeignKey, Integer, Column, Table
 from app.inventory.tracking_items.enums import BatchStatus, SerialStatus
 from typing import List
+from sqlalchemy import String
 
 stock_ledger_serial_map = Table(
     "stock_ledger_serial_map",
@@ -32,11 +33,13 @@ class SerialNumber(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     item_id: Mapped[int] = mapped_column(ForeignKey("items.id"), nullable=False)
     serial_number: Mapped[str] = mapped_column(unique=True, nullable=False)
-    status: Mapped[SerialStatus] = mapped_column(default = SerialStatus.INSTOCK, nullable=False)
-    current_warehouse_id: Mapped[int] = mapped_column(ForeignKey("warehouses.id"), nullable=True)
+    status: Mapped[str] = mapped_column(
+        String(50), 
+        default=SerialStatus.ACTIVE.value, 
+        nullable=False
+    )
     batch_id: Mapped[int] = mapped_column(ForeignKey("itembatches.id"), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default = lambda: datetime.now(timezone.utc))
 
     items: Mapped["Item"] = relationship("Item", back_populates="item_serial_number") #type: ignore
-    warehouses: Mapped["Warehouse"] = relationship("Warehouse", back_populates="warehouse_serial_number") #type: ignore
     item_batches: Mapped["ItemBatch"] = relationship("ItemBatch", back_populates="serial_numbers")
