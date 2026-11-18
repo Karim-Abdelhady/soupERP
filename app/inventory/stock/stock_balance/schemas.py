@@ -4,6 +4,8 @@ from datetime import datetime
 class StockBalanceResponse(BaseModel):
     id: int
     item_id: int
+    batch_id: int | None = None
+    serial_id: list[int] | None = None
     warehouse_id: int
     actual_qty: int
     reserved_qty: int

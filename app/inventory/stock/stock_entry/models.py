@@ -4,6 +4,7 @@ from sqlalchemy import ForeignKey, DateTime, Text
 from app.inventory.stock.stock_entry.enums import Purpose, Status
 from datetime import datetime, timezone
 from typing import List
+from sqlalchemy.dialects.postgresql import JSON
 
 class StockEntry(Base):
     __tablename__ = "stockentries"
@@ -11,7 +12,7 @@ class StockEntry(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     document_number: Mapped[str] = mapped_column(unique=True, default = "STE-2026-001", nullable=False)
     purpose: Mapped[Purpose] = mapped_column(default = Purpose.TRANSFER, nullable=False)
-    status: Mapped[Status] = mapped_column(default = Status.DRAFT, nullable=False)
+    status: Mapped[Status] = mapped_column(nullable=False)
     source_warehouse_id: Mapped[int] = mapped_column(ForeignKey("warehouses.id"), nullable=True)
     target_warehouse_id: Mapped[int] = mapped_column(ForeignKey("warehouses.id"), nullable=True)
     remarks: Mapped[str] = mapped_column(Text, nullable=True)
@@ -25,7 +26,8 @@ class StockEntry(Base):
     source_warehouse = relationship("Warehouse", foreign_keys=[source_warehouse_id], back_populates="source_stock_entry")
     target_warehouse = relationship("Warehouse", foreign_keys=[target_warehouse_id], back_populates="target_stock_entry")
     stock_entry_lines: Mapped[List["StockEntryLine"]] = relationship("StockEntryLine", back_populates="stock_entry")
-    
+
+
 class StockEntryLine(Base): #rows
     __tablename__ = "stockentryrows"
 
@@ -40,7 +42,8 @@ class StockEntryLine(Base): #rows
     stock_quantity: Mapped[int] = mapped_column(default = 0, nullable=False)
     unit_cost: Mapped[int] = mapped_column(default = 1, nullable=False)
     line_amount: Mapped[int] = mapped_column(default = 1, nullable=False)
-
+    batch_id: Mapped[int] = mapped_column(ForeignKey("itembatches.id"), nullable= True)
+    serial_id: Mapped[list[int]] = mapped_column(JSON, default = list, nullable=True)
     stock_entry: Mapped["StockEntry"] = relationship("StockEntry", back_populates="stock_entry_lines")
     items: Mapped["Item"] = relationship("Item", back_populates="stock_entry_line") #type: ignore
     source_warehouse = relationship("Warehouse", foreign_keys=[source_warehouse_id], back_populates="source_stock_entry_line")

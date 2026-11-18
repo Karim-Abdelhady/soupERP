@@ -4,6 +4,8 @@ from datetime import datetime
 class StockLedgerResponse(BaseModel):
     id: int
     item_id: int
+    batch_id: int | None = None
+    serial_id: list[int] | None = None
     warehouse_id: int
     posting_date: datetime
     quantity_delta: int
@@ -22,6 +24,8 @@ class StockLedgerResponse(BaseModel):
 
 class StockLedgerCreate(BaseModel):
     item_id: int
+    batch_id: int | None = None
+    serial_id: list[int] | None = None
     warehouse_id: int
     quantity_delta: int
     incoming_rate: float

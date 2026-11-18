@@ -7,6 +7,8 @@ class StockEntryLineResponse(BaseModel):
     id: int
     stock_entry_id: int
     item_id: int
+    serial_id: List[int] | None = None
+    batch_id: int | None = None
     source_warehouse_id: int | None = None
     target_warehouse_id: int | None = None
     quantity: int
@@ -33,7 +35,7 @@ class StockEntryResponse(BaseModel):
     submitted_at: datetime | None = None
     cancelled_by: str | None = None
     cancelled_at: datetime | None = None
-    stock_entry_lines: List[StockEntryLineResponse]
+    stock_entry_lines: List[StockEntryLineResponse] = []
 
     class Config:
         from_attributes = True
@@ -46,6 +48,8 @@ class StockEntryLineCreate(BaseModel):
     uom_id: int
     conversion_factor: int
     unit_cost: int
+    batch_id: int | None = None
+    serial_id: List[int] | None = None
 
 class StockEntryCreate(BaseModel):
     document_number: str
@@ -64,6 +68,8 @@ class StockEntryLineUpdate(BaseModel):
     uom_id: int | None = None
     conversion_factor: int | None = None
     unit_cost: int | None = None
+    batch_id: int | None = None 
+    serial_id: List[int] | None = None
 
 class StockEntryUpdate(BaseModel):
     purpose: Purpose | None = None

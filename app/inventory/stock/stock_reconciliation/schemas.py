@@ -7,6 +7,8 @@ class StockReconciliationLineResponse(BaseModel):
     id: int
     reconciliation_id: int
     item_id: int
+    batch_id: int | None = None
+    serial_id: list[int] | None = None
     expected_qty: int
     counted_qty: int
     difference_qty: int
@@ -36,6 +38,8 @@ class StockReconciliationResponse(BaseModel):
 
 class StockReconciliationLineCreate(BaseModel):
     item_id: int
+    batch_id: int | None = None
+    serial_id: list[int] | None = None
     counted_qty: int
 
 class StockReconciliationCreate(BaseModel):
@@ -53,5 +57,5 @@ class StockReconciliationUpdate(BaseModel):
     posting_date: datetime | None = None
     warehouse_id: int | None = None
     reason: str | None = None
-    stock_reconciliation_lines: List[StockReconciliationLineUpdate]
+    stock_reconciliation_lines: List[StockReconciliationLineUpdate] | None = None
 

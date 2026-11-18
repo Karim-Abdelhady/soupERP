@@ -30,7 +30,6 @@ class BatchUpdate(BaseModel):
 class SerialNumberCreate(BaseModel):
     item_id: int
     serial_number: str
-    current_warehouse_id: int | None = None
     batch_id: int | None = None
 
 class SerialNumberResponse(BaseModel):
@@ -38,7 +37,6 @@ class SerialNumberResponse(BaseModel):
     item_id: int
     serial_number: str
     status: SerialStatus
-    current_warehouse_id: int | None = None
     batch_id: int | None = None
     created_at: datetime
 
@@ -48,7 +46,6 @@ class SerialNumberResponse(BaseModel):
 class SerialNumberUpdate(BaseModel):
     item_id: int | None = None
     serial_number: str | None = None
-    current_warehouse_id: int | None = None
     batch_id: int | None = None
 
 class BatchSerialResponse(BaseModel):

@@ -1,7 +1,7 @@
 from enum import Enum
 
-class Status(str, Enum):
-    ACTIVE = "Active"
-    PARTIALLY = "Partially Fulfilled"
-    FULFILLED = "Fulfilled"
-    RELEASED = "Released"
+class ReservationStatus(str, Enum):
+    ACTIVE = "active"
+    PARTIALLY = "partially fulfilled"
+    FULFILLED = "fulfilled"
+    RELEASED = "released"

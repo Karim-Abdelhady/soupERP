@@ -17,7 +17,7 @@ def get_stock_balance_by_id(db: Session, balance_id: int):
 
 def get_stock_balance_item_history(db: Session, item_id: int):
     stock_item_balance = repository.get_stock_balance_item_history(db, item_id)
-    if stock_item_balance is None:
+    if not stock_item_balance:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail = "Item ID is not found")
     return stock_item_balance
 
