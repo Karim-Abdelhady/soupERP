@@ -9,6 +9,8 @@ from app.inventory.items import repository as ItemRepository
 from app.inventory.tracking_items import repository as TrackRepository
 from app.inventory.tracking_items.enums import SerialStatus
 from app.inventory.warehouses import repository as WarehouseRepository
+from app.inventory.stock.stock_ledger.service import create_stock_ledger_entry
+from app.inventory.stock.stock_ledger.schemas import StockLedgerCreate
 
 def create_stock_reservation(db: Session, new_reservation: StockReservationCreate):
     item = ItemRepository.get_item_by_id(db, new_reservation.item_id)
@@ -20,7 +22,7 @@ def create_stock_reservation(db: Session, new_reservation: StockReservationCreat
 
     check_item_and_warehouse_active_status(db, new_reservation.item_id, new_reservation.warehouse_id)
 
-    if getattr(item, "has_batch_no", False):
+    if getattr(item, "is_batch_tracked", False):
         if not batch_id:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Batch ID is required for batch-tracked items.")
         
@@ -35,7 +37,7 @@ def create_stock_reservation(db: Session, new_reservation: StockReservationCreat
             if batch_exp < current_date:
                 raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Cannot reserve expired batch")
 
-    if getattr(item, "has_serial_no", False):
+    if getattr(item, "is_serial_tracked", False):
         if not serial_id:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Serial ID(s) are required for serialized items.")
         
@@ -50,13 +52,9 @@ def create_stock_reservation(db: Session, new_reservation: StockReservationCreat
                 raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Serial ID {s_id} is not In Stock")
 
     if batch_id:
-        balance = SBrepository.get_stock_balance_by_item_warehouse_and_batch(
-            db, new_reservation.item_id, new_reservation.warehouse_id, batch_id
-        )
+        balance = SBrepository.get_stock_balance_by_item_warehouse_and_batch(db, new_reservation.item_id, new_reservation.warehouse_id, batch_id)
     else:
-        balance = SBrepository.get_stock_balance_by_item_and_warehouse(
-            db, new_reservation.item_id, new_reservation.warehouse_id
-        )
+        balance = SBrepository.get_stock_balance_by_item_warehouse_and_batch(db, new_reservation.item_id, new_reservation.warehouse_id, batch_id)
 
     if not balance:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Item and/or Warehouse do not belong to a Stock Balance")
@@ -88,15 +86,39 @@ def fulfill_stock_reservation(db: Session, reservation_id: int):
     if reservation.status == ReservationStatus.FULFILLED.value:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail = "Reservation is already fulfilled")
 
-    balance = SBrepository.get_stock_balance_by_item_and_warehouse(db, reservation.item_id, reservation.warehouse_id)
+    if reservation.status == ReservationStatus.RELEASED.value:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail = "Cannot fulfil a released reservation")
+
+    check_item_and_warehouse_active_status(db, reservation.item_id, reservation.warehouse_id)
+
+    batch_id = getattr(reservation, "batch_id", None)
+
+    if batch_id is None:
+        balance = SBrepository.get_stock_balance_by_item_warehouse_and_batch(db, reservation.item_id, reservation.warehouse_id)
+    else:
+        balance = SBrepository.get_stock_balance_by_item_warehouse_and_batch(db, reservation.item_id, reservation.warehouse_id)
     if not balance:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail = "Associated Stock balance is not found")
+    if balance.actual_qty < reservation.quantity:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail = "Actual quantity is less than reservation quantity")
+    if balance.reserved_qty < reservation.quantity:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail = "Reserved stock quantity is less than reservation quantity")
     
-    balance.actual_qty = balance.actual_qty - reservation.quantity
     balance.reserved_qty = balance.reserved_qty - reservation.quantity
-    balance.available_qty = balance.actual_qty - balance.reserved_qty
-    reservation.status = ReservationStatus.FULFILLED.value
-    reservation.fulfilled_at = datetime.now(timezone.utc)
+
+    ledger_entry = StockLedgerCreate(
+        item_id = reservation.item_id,
+        batch_id= reservation.batch_id,
+        serial_id = reservation.serial_id,
+        warehouse_id = reservation.warehouse_id,
+        quantity_delta=abs(reservation.quantity),
+        incoming_rate=0.0,
+        outgoing_rate=float(getattr(balance, "valuation_rate", 0.0) or 0.0),
+        voucher_type="Stock Reservation",
+        voucher_id=str(reservation.id),
+        voucher_line_id=setattr(getattr(reservation, "source_line_id"), None)
+    )
+    create_stock_ledger_entry(db, ledger_entry)
 
     db.commit()
     db.refresh(balance)

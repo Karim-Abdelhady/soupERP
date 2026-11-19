@@ -65,17 +65,16 @@ def create_batch_number(db: Session, new_batch: BatchCreate):
     if not item.is_batch_tracked:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail = "Item ID must have is_batch_tracked enabled")
 
-    if not item.has_expiry_date:
+    if item.has_expiry_date and not new_batch.expiry_date:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail = "Item ID must have has_expiry_Date enabled")
 
-    if not item.is_batch_tracked and not new_batch.expiry_date:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail = "Expiry date is required")
-
-    current_date = datetime.now(timezone.utc)
-    if new_batch.expiry_date < current_date:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail = "Provided date is already expired")
-    if new_batch.expiry_date < new_batch.manufacture_date:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail = "Expiry date is before Manufacture date")
+    if new_batch.expiry_date:
+        current_date = datetime.now(timezone.utc).date()
+        if new_batch.expiry_date < current_date:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail = "Provided date is already expired")
+        if getattr(new_batch, "manufacture_date", None) and new_batch.expiry_date < new_batch.manufacture_date:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail = "Expiry date is before manufacture date")
+        
     new_data = new_batch.model_dump(exclude_unset=True)
     new_data["status"] = BatchStatus.ACTIVE
     new_data["item_id"] = new_batch.item_id

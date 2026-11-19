@@ -8,6 +8,8 @@ from app.inventory.stock.stock_balance import repository as SBrepository
 from app.inventory.stock.stock_ledger import repository as LedgerRepository
 from app.inventory.stock.stock_balance.models import StockBalance
 from app.inventory.warehouses import repository as WarehouseRepository
+from app.inventory.tracking_items import repository as TrackingRepository
+from app.inventory.items.models import ItemGroup
 
 def get_item_groups(db: Session):
     groups = repository.get_item_groups(db)
@@ -96,6 +98,8 @@ def create_item(db: Session, new_item: ItemCreate):
     existing_item = repository.get_item_by_code(db, new_item.item_code)
     if existing_item is not None:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,detail = "Item already exists")
+    if not ItemGroup.is_active:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail = "Item Group is inactive")
     if new_item.has_expiry_date and not new_item.is_batch_tracked:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail = "Item cannot have an expiry date unless batch tracking is enabled")
     new_data = new_item.model_dump(exclude_unset=True)
@@ -112,13 +116,31 @@ def update_item(db: Session, item_id: int, update_item: ItemUpdate):
 
     new_data = update_item.model_dump(exclude_unset=True)
 
-    new_uom = new_data.get("uom")
-    if new_uom is not None and new_uom != item.uom:
-        ledger_entries = LedgerRepository.get_stock_ledger_item_history(db, item_id)
+    if update_item.has_expiry_date and not update_item.is_batch_tracked:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail = "Item cannot have an expiry date without is_batch_tracked enabled")
+    batch_changed = "is_batch_tracked" in new_data and new_data["is_batch_tracked"] != item.is_batch_tracked
+    serial_changed = "is_serial_tracked" in new_data and new_data["is_serial_tracked"] != item.is_serial_tracked
+    expiry_changed = "has_expiry_data" in new_data and new_data["has_expiry_date"] != item.has_expiry_date
+    uom_changed = "stock_uom_id" in new_data and new_data["stock_uom_id"] != item.stock_uom_id
 
+    ledger_entries = None
+    if uom_changed or batch_changed or serial_changed or expiry_changed:
+        ledger_entries = LedgerRepository.get_stock_ledger_item_history(db, item_id)
+    if uom_changed and ledger_entries:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail = "Cannot modify Base UOM because stock transactions already exists for this item")
+    if batch_changed or serial_changed or expiry_changed:
         if ledger_entries:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail = "Cannot modify Base UOM because stock transactions already exist for this item")
-    
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail = "Cannot modify batch, serial, or expiry tracking settings because stock transactions already exists for this item")
+        existing_balance = SBrepository.get_stock_balance_item_history(db, item_id)
+        if existing_balance:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail = "Cannot modify batch, serial, or expiry tracking settings because stock balances are already exists for this item")
+        existing_batches = TrackingRepository.get_batches_by_item_id(db, item_id)
+        if existing_batches:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail = "Cannot modify batch, serial, or expired tracking settings because batch records are already exists for this item")
+        existing_serials = TrackingRepository.get_serials_by_item_id(db, item_id)
+        if existing_serials:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail = "Cannot modify batch, serial, or expired tracking settings because serial records are already exists for this item")
+        
     for key, value in new_data.items():
         setattr(item, key, value)
     item.updated_at = datetime.now(timezone.utc)

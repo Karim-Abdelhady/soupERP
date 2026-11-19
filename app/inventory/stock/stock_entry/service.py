@@ -66,10 +66,14 @@ def create_stock_entry(db: Session, new_stock: StockEntryCreate):
         tgt_wh = line_tgt or new_stock.target_warehouse_id
         check_item_and_warehouse_active_status(db, item_id , src_wh, tgt_wh)
         quantity = line.get("quantity", 0)
-        if quantity <= 0:
+        if quantity is None or quantity <= 0:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,detail = "Quantity must be greater than Zero")
         conversion_factor = line.get("conversion_factor", 1.0)
+        if conversion_factor is None or conversion_factor <= 0:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail = "Conversion factor must be greater than Zero")
         unit_cost = line.get("unit_cost", 0.0)
+        stock_quantity = quantity * conversion_factor
+        line_amount = quantity * unit_cost
 
         batch_id = line.get("batch_id")
         serial_id = line.get("serial_id")
@@ -81,14 +85,15 @@ def create_stock_entry(db: Session, new_stock: StockEntryCreate):
             if batch.item_id != item_id:
                 raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail = "Batch does not belong to the item")
             if batch.expiry_date:
-                current_date = datetime.now(timezone.utc)
+                current_date = datetime.now(timezone.utc).date()
                 batch_exp = batch.expiry_date.date() if isinstance(batch.expiry_date, datetime) else batch.expiry_date
-
                 if batch_exp < current_date:
                     raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail = "Batch is already Expired")
-                
-        line["stock_quantity"] = quantity * conversion_factor
-        line["line_amount"] = quantity * unit_cost
+
+        if serial_id and len(serial_id) != int(stock_quantity):
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail = "Mismatch, stock quantity is different from the provided serial numbers")
+        line["stock_quantity"] = stock_quantity
+        line["line_amount"] = line_amount
         db_line = StockEntryLine(
             stock_entry_id=db_stock_entry.id,
             item_id=item_id,
@@ -105,10 +110,6 @@ def create_stock_entry(db: Session, new_stock: StockEntryCreate):
         )
         db.add(db_line)
         db.flush()
-
-        if serial_id:
-            if len(serial_id) != int(quantity):
-                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail = "Mismatch, Line quantity is different from the provided serial numbers")
 
     return repository.create_stock_entry(db, db_stock_entry)
 
@@ -209,6 +210,23 @@ def cancel_stock_entry(db: Session, stock_id: int):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail = "Stock Entry is already canceled")
     if stock_entry.status != Status.SUBMITTED:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail = "Only submitted stock entries can be canceled")
+    
+    for line in stock_entry.stock_entry_lines:
+        tgt_wh = line.target_warehouse_id or stock_entry.target_warehouse_id
+        if tgt_wh:
+            if getattr(line, "batch_id", None):
+                tgt_balance = SBrepository.get_stock_balance_by_item_warehouse_and_batch(db, line.item_id, tgt_wh, line.batch_id)
+            else:
+                tgt_balance = SBrepository.get_stock_balance_by_item_and_warehouse(db, line.item_id, tgt_wh)
+
+            if tgt_balance is None or tgt_balance.actual_qty < line.stock_quantity:
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,detail=("Insuffient Stock"),)
+
+            if getattr(line, "serial_id", None):
+                for s_id in line.serial_id:
+                    serial = TrackRepository.get_serial_number_by_id(db, s_id)
+                    if serial is None or serial.status != SerialStatus.INSTOCK.value:
+                        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,detail=("Serial ID is no longer available"))
 
     for line in stock_entry.stock_entry_lines:
         src_wh = line.source_warehouse_id or stock_entry.source_warehouse_id
@@ -255,11 +273,137 @@ def update_stock_entry(db: Session, stock_id: int, update_stock_entry: StockEntr
     stock_entry = repository.get_stock_entry_by_id(db, stock_id)
     if stock_entry is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail = "Stock Entry ID is not found")
+    if stock_entry.status != Status.DRAFT:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail = "Only draft Stock Entries can be updated")
     
     update_data = update_stock_entry.model_dump(exclude_unset=True)
-    if stock_entry.status == Status.DRAFT:
-        for key, value in update_data.items():
-            setattr(stock_entry, key, value)
+    update_lines = "stock_entry_lines" in update_data
+    new_lines = update_data.pop("stock_entry_lines", None)
+    for key, value in update_data.items():
+        setattr(stock_entry, key, value)
+    purpose = stock_entry.purpose
+    src_wh = stock_entry.source_warehouse_id
+    tgt_wh = stock_entry.target_warehouse_id
+
+    validate_warehouse_rules(purpose, src_wh, tgt_wh)
+
+    if src_wh is None:
+        warehouse = WarehouseRepository.get_warehouse_by_id(db, src_wh)
+        if warehouse is None or warehouse.is_active == "False":
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail = "Warehouse ID is not found or inactive")
+    if tgt_wh is None:
+        warehouse = WarehouseRepository.get_warehouse_by_id(db, tgt_wh)
+        if warehouse is None or warehouse.is_active == "False":
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail = "Warehouse ID is not found or inactive")
+
+    prepared_lines = list[dict] = []
+    if update_lines:
+        if not new_lines:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail = "Stock Entry must have at least one line")
+
+        for new_line in new_lines:
+            if isinstance(new_line, dict):
+                item_id = new_line.get("item_id")
+                line_src = new_line.get("source_warehouse_id")
+                line_tgt = new_line.get("target_warehouse_id")
+                quantity = new_line.get("quantity", 0)
+                conversion_factor = new_line.get("conversion_factor", 1.0)
+                unit_cost = new_line.get("unit_cost", 0.0)
+                uom_id = new_line.get("uom_id")
+                batch_id = new_line.get("batch_id")
+                serial_id = new_line.get("serial_id")
+            else:
+                item_id = getattr(new_line, "item_id", None)
+                line_src = getattr(new_line, "source_warehouse_id", None)
+                line_tgt = getattr(new_line, "target_warehouse_id", None)
+                quantity = getattr(new_line, "quantity", 0)
+                conversion_factor = getattr(new_line, "conversion_factor", 1.0)
+                unit_cost = getattr(new_line, "unit_cost", 0.0)
+                uom_id = getattr(new_line, "uom_id", None)
+                batch_id = getattr(new_line, "batch_id", None)
+                serial_id = getattr(new_line, "serial_id", None)
+
+            if item_id is None:
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail = "Item ID is required for each stock entry line")
+
+            item = ItemRepository.get_item_by_id(db, item_id)
+            if item is None:
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail = "Item ID is not found")
+
+            src_wh = line_src if line_src is not None else src_wh
+            tgt_wh = line_tgt if line_tgt is not None else tgt_wh
+            check_item_and_warehouse_active_status(db, item_id, src_wh, tgt_wh)
+
+            if quantity is None or quantity <= 0:
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,detail="Quantity must be greater than Zero")
+
+            if conversion_factor is None or conversion_factor <= 0:
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,detail="Conversion factor must be greater than Zero")
+
+            if unit_cost is None or unit_cost < 0:
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,detail="Unit cost cannot be negative")
+
+            if getattr(item, "is_batch_tracked", False) and not batch_id:
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,detail=f"Batch ID is required")
+
+            if batch_id:
+                batch = TrackRepository.get_batch_number_by_id(db, batch_id)
+                if batch is None:
+                    raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Batch ID is not found")
+                if batch.item_id != item_id:
+                    raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Batch does not belong to the item")
+                if batch.expiry_date:
+                    current_date = datetime.now(timezone.utc).date()
+                    batch_exp = (
+                        batch.expiry_date.date()
+                        if isinstance(batch.expiry_date, datetime)
+                        else batch.expiry_date
+                    )
+                    if batch_exp < current_date:
+                        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,detail="Batch is already Expired")
+
+            stock_quantity = quantity * conversion_factor
+            line_amount = quantity * unit_cost
+
+            if getattr(item, "is_serial_tracked", False) and not serial_id:
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,detail="Serial ID is required for Item_id")
+
+            if serial_id:
+                if len(serial_id) != int(stock_quantity):
+                    raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,detail="Mismatch, Stock quantity is different from the provided serial numbers")
+                for s_id in serial_id:
+                    serial = TrackRepository.get_serial_number_by_id(db, s_id)
+                    if serial is None:
+                        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail=f"Serial ID is not found")
+                    if serial.item_id != item_id:
+                        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,detail=f"Serial ID does not belong to item",)
+
+            prepared_lines.append(
+                {
+                    "stock_entry_id": stock_entry.id,
+                    "item_id": item_id,
+                    "source_warehouse_id": src_wh,
+                    "target_warehouse_id": tgt_wh,
+                    "quantity": quantity,
+                    "uom_id": uom_id,
+                    "conversion_factor": conversion_factor,
+                    "stock_quantity": stock_quantity,
+                    "unit_cost": unit_cost,
+                    "line_amount": line_amount,
+                    "batch_id": batch_id,
+                    "serial_id": serial_id,
+                }
+            )
+
+        stock_entry.stock_entry_lines.clear()
+        db.flush()
+
+        for line_payload in prepared_lines:
+            stock_entry.stock_entry_lines.append(StockEntryLine(**line_payload))
+
+    if hasattr(stock_entry, "updated_at"):
+        stock_entry.updated_at = datetime.now(timezone.utc)
+
     return repository.update_stock_entry(db, stock_entry)
 
 def check_item_and_warehouse_active_status(db: Session, item_id: int, *warehouse_ids):

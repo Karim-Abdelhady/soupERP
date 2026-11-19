@@ -73,7 +73,6 @@ class StockEntryLineUpdate(BaseModel):
 
 class StockEntryUpdate(BaseModel):
     purpose: Purpose | None = None
-    status: Status | None = None
     source_warehouse_id: int | None = None
     target_warehouse_id: int | None = None
     remarks: str | None = None
