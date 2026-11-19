@@ -87,10 +87,7 @@ def create_stock_ledger_entry(db: Session, data: StockLedgerCreate):
     balance.stock_value = new_stock_value
     balance.serial_id = updated_serials
 
-    db.commit()
-    db.refresh(ledger_entry)
-    db.refresh(balance)
-
+    db.flush()
     return ledger_entry
 
 def get_stock_ledgers(db: Session):

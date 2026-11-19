@@ -47,7 +47,7 @@ def create_stock_reconciliation(db: Session, new_stock_reconciliation: StockReco
             if batch.item_id != item_id:
                 raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail = "Batch does not belong to the item")
             if batch.expiry_date:
-                current_date = datetime.now(timezone.utc)
+                current_date = datetime.now(timezone.utc).date()
                 batch_exp = batch.expiry_date.date() if isinstance(batch.expiry_date, datetime) else batch.expiry_date
 
                 if batch_exp < current_date:
@@ -141,22 +141,39 @@ def cancel_stock_reconciliation(db: Session, rec_id: int):
     if stock_reconciliation.status == Status.CANCELED:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail = "Stock Reconciliation is already canceled")
 
-    if stock_reconciliation.status == Status.SUBMITTED:
-        for line in stock_reconciliation.stock_reconciliation_lines:
-            if line.difference_qty != 0:
-                payload = StockLedgerCreate(
-                    item_id = line.item_id,
-                    batch_id = line.batch_id,
-                    serial_id= line.serial_id,
-                    warehouse_id = stock_reconciliation.warehouse_id,
-                    quantity_delta = -line.difference_qty,
-                    incoming_rate = line.valuation_rate if line.difference_qty > 0 else 0.0,
-                    outgoing_rate = line.valuation_rate if line.difference_qty < 0 else 0.0,
-                        voucher_type = "Stock Reconciliation",
-                    voucher_id = stock_reconciliation.document_number,
-                    voucher_line_id = f"{stock_reconciliation.document_number}-L{line.id}"
-                )
-                create_stock_ledger_entry(db, payload)
+    if stock_reconciliation.status != Status.SUBMITTED:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail = "Only submitted stock reconciliations can be canceled")
+    
+    for line in stock_reconciliation.stock_reconciliation_lines:
+        if line.difference_qty > 0:
+            reversal_qty = line.difference_qty
+            batch_id = getattr(line, "batch_id", None)
+            if batch_id:
+                balance = SBrepository.get_stock_balance_by_item_warehouse_and_batch(db, line.item_id, stock_reconciliation.warehouse_id, batch_id)
+            else:
+                balance = SBrepository.get_stock_balance_by_item_and_warehouse(db, line.item_id, stock_reconciliation.warehouse_id)
+            available_qty = balance.actual_qty if balance else 0
+            if available_qty < reversal_qty:
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail = "Insufficient Stock")
+
+    for line in stock_reconciliation.stock_reconciliation_lines:
+        if line.difference_qty != 0:
+            reversal_qty = -line.difference_qty
+            is_incoming = reversal_qty > 0
+            line_rate = float(getattr(line, "valuation_rate", 0.0) or 0.0)
+            ledger_entry = StockLedgerCreate(
+                item_id = line.item_id,
+                batch_id = line.batch_id,
+                serial_id = line.serial_id,
+                warehouse_id = stock_reconciliation.warehouse_id,
+                quantity_delta=reversal_qty,
+                incoming_rate = line_rate if is_incoming else 0.0,
+                outgoing_rate = line_rate if not is_incoming else 0.0,
+                voucher_type = "Stock Reconciliation",
+                voucher_id = stock_reconciliation.document_number,
+                voucher_line_id = line.id
+            )
+            create_stock_ledger_entry(db, ledger_entry)
     stock_reconciliation.status = Status.CANCELED
     stock_reconciliation.canceled_at = datetime.now(timezone.utc)
 
@@ -172,7 +189,7 @@ def update_stock_reconciliation(db: Session, rec_id: int, update_stock_rec: Stoc
     update_data = update_stock_rec.model_dump(exclude_unset=True)
     lines_data = update_data.pop("stock_reconciliation_lines", None)
 
-    if StockReconciliation.status != Status.DRAFT:
+    if stock_reconciliation.status != Status.DRAFT:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail = "Stock Reconciliation can not be edited after submitted/canceled")
  
     for key, value in update_data.items():

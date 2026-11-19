@@ -38,6 +38,16 @@ def get_reorder_rules_by_item_and_warehouse(db: Session, item_id: int, warehouse
 def create_reorder_rule(db: Session, new_reorder: ReorderCreate):
     if new_reorder.reorder_level < new_reorder.safety_stock_level:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail = "Reorder Level cannot be less than the safety stock level")
+    if new_reorder.safety_stock_level is not None and new_reorder.safety_stock_level < 0:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail = "Safety Stock level cannot be negative")
+    if new_reorder.reorder_level is not None and new_reorder.reorder_level < 0:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail = "Reorder Level cannot be negative")
+    if new_reorder.reorder_qty is not None and new_reorder.reorder_qty < 0:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail = "Reorder quantity cannot be negative")
+    if new_reorder.lead_time_days is not None and new_reorder.lead_time_days < 0:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail = "Lead time cannot be negative")
+    if new_reorder.maximum_order_qty is not None and new_reorder.reorder_qty is not None and new_reorder.maximum_order_qty < new_reorder.reorder_qty:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail = "Maximum order quantity cannot be less than the reorder quantity")
     new_data = new_reorder.model_dump(exclude_unset=True)
     new_data["is_active"] = True
     return repository.create_reorder_rule(db, new_data)
@@ -48,7 +58,18 @@ def update_reorder_rule(db: Session, reorder_id: int, update_reorder: ReorderUpd
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail = "Reorder Rule ID is not found")
     if not reorder.is_active:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail = "Reorder Rule is not active")
-    
+    if update_reorder.reorder_level < update_reorder.safety_stock_level:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail = "Reorder Level cannot be less than the safety stock level")
+    if update_reorder.safety_stock_level is not None and update_reorder.safety_stock_level < 0:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail = "Safety Stock level cannot be negative")
+    if update_reorder.reorder_level is not None and update_reorder.reorder_level < 0:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail = "Reorder Level cannot be negative")
+    if update_reorder.reorder_qty is not None and update_reorder.reorder_qty < 0:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail = "Reorder quantity cannot be negative")
+    if update_reorder.lead_time_days is not None and update_reorder.lead_time_days < 0:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail = "Lead time cannot be negative")
+    if update_reorder.maximum_order_qty is not None and update_reorder.reorder_qty is not None and update_reorder.maximum_order_qty < update_reorder.reorder_qty:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail = "Maximum order quantity cannot be less than the reorder quantity")
     update_data = update_reorder.model_dump(exclude_unset=True)
     for key, value in update_data.items():
         setattr(reorder, key, value)
