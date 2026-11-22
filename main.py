@@ -19,6 +19,7 @@ from app.inventory.stock.stock_reservation.router import router as StockReservat
 from app.inventory.tracking_items.router import router as TrackingRouter
 from app.inventory.reorder.router import router as ReorderRouter
 from app.purchasing.payment_terms.router import router as PaymentTermsRouter
+from app.purchasing.material_request.router import router as MaterialRequestRouter
 
 Base.metadata.create_all(bind=engine)
 app=FastAPI()
@@ -42,3 +43,4 @@ app.include_router(StockReservationRouter)
 app.include_router(TrackingRouter)
 app.include_router(ReorderRouter)
 app.include_router(PaymentTermsRouter)
+app.include_router(MaterialRequestRouter)
