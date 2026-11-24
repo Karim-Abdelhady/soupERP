@@ -12,7 +12,7 @@ class SupplierUpdate(BaseModel):
 
 class SupplierDetailResponse(BaseModel):
     id: int
-    supplier_category: str
+    supplier_category: str | None = None
     tax_id: str | None = None
     ein: str | None = None
     vat: str | None = None

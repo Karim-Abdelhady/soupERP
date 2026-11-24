@@ -8,7 +8,7 @@ class Supplier(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     supplier_id: Mapped[int] = mapped_column(ForeignKey("users.id"), unique=True, nullable=False)
     user = relationship("User", back_populates="supplier_profile")
-    supplier_category: Mapped[str] = mapped_column(nullable=False)
+    supplier_category: Mapped[str] = mapped_column(nullable=True)
     tax_id: Mapped[str] = mapped_column(nullable=True)
     ein: Mapped[str] = mapped_column(nullable=True)
     vat: Mapped[str] = mapped_column(nullable=True)

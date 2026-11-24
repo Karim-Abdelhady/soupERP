@@ -12,7 +12,7 @@ from app.systemadministration.users.models import User
 router = APIRouter()
 
 @router.get("/users/suppliers",response_model=List[UserSupplierResponse], tags = ["Suppliers"])
-def get_suppliers(db: Session = Depends(get_db), current_user: User = Depends(require_permission(PermissionCatalog.SUPPLIER_READ))):
+def get_suppliers(db: Session = Depends(get_db)):
     return service.get_suppliers(db)
 
 @router.get("/users/suppliers/{supplier_id}", response_model=UserSupplierResponse, tags = ["Suppliers"])
@@ -20,7 +20,7 @@ def get_supplier_by_supplier_id(supplier_id: int, db: Session = Depends(get_db),
     return service.get_supplier_by_supplier_id(db, supplier_id)
 
 @router.post("/users/suppliers/{user_id}", response_model=UserResponse, tags = ["Suppliers"])
-def convert_user_to_supplier(user_id: int, db: Session = Depends(get_db), current_user: User = Depends(require_permission(PermissionCatalog.SUPPLIER_CREATE))):
+def convert_user_to_supplier(user_id: int, db: Session = Depends(get_db)):
     return service.convert_user_to_supplier(db, user_id)
 
 @router.patch("/users/suppliers/{user_id}", response_model=UserSupplierResponse, tags = ["Suppliers"])
