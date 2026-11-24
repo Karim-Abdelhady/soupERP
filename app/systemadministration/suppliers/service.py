@@ -22,6 +22,13 @@ def convert_user_to_supplier(db: Session, user_id: int) -> User:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail = "User is not found")
     user.user_type = UserType.SUPPLIER
     user.updated_at = datetime.now(timezone.utc)
+    new_supplier = Supplier(
+        supplier_id = user.id
+    )
+    db.add(new_supplier)
+    db.commit()
+    db.refresh(user)
+    db.refresh(new_supplier)
     return repository.convert_user_to_supplier(db, user)
 
 def update_supplier(db: Session, user_id: int, updateSupplier: SupplierUpdate):
